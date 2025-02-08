@@ -127,7 +127,7 @@ async def send_files(client, message):
                 await client.send_message(chat_id=DBUSER, text="Audio Skipped")
                 failed += 1
             else:
-                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
+                await client.send_video(chat_id=CHANNEL_ID, video=file_id, caption=file_message)
 
         except FloodWait as e:
             logging.warning(f'Flood wait of {e.value} seconds detected')
