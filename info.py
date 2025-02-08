@@ -6,18 +6,18 @@ id_pattern = re.compile(r'^.\d+$')
 
 # Bot information
 SESSION = environ.get('SESSION', 'FsBotz')
-API_ID = int("")
-API_HASH = ""
-BOT_TOKEN = environ.get('BOT_TOKEN', "")
+API_ID = int("20773430")
+API_HASH = "fa900dd9547c3ddd62a6ced944251559"
+BOT_TOKEN = environ.get('BOT_TOKEN', "1747248526:AAEQsl3uk_QvMfnfDfuWIAW4PJJfbdrS1o0")
 
 
 # This Pictures Is For Start Message Picture, You Can Add Multiple By Giving One Space Between Each.
-PICS = (environ.get('PICS' ,'https://graph.org/file/9bc905986578fe468ced6.jpg https://graph.org/file/7230540148a6f704552de.jpg https://graph.org/file/1ef334e3cdfa368fae986.jpg https://graph.org/file/b9ffdf56741dcc5c508a7.jpg https://graph.org/file/a4bef533b0ee8815fc2cb.jpg https://graph.org/file/f11a9552706c0b490682f.jpg https://graph.org/file/2df3277be246d91205b4b.jpg https://graph.org/file/c5cbda8edb3f87c3c2639.jpg https://graph.org/file/a4ac39bb700ad227b090f.jpg https://graph.org/file/1aadf3219407df6a5aa4d.jpg https://graph.org/file/375fe73f23f6c6c099e80.jpg https://graph.org/file/10b80b514219cbded6e9e.jpg https://graph.org/file/a291f637768262bd52f5e.jpg')).split() #SAMPLE PIC
+PICS = (environ.get('PICS' ,'https://graph.org/file/a291f637768262bd52f5e.jpg')).split() #SAMPLE PIC
 
 
 # Admins & Users
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '6666362904').split()] # For Multiple Id Use One Space Between Each.
-auth_users = [int(user) if id_pattern.search(user) else user for user in environ.get('AUTH_USERS', '').split()]  # For Multiple Id Use One Space Between Each.
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1101724431').split()] # For Multiple Id Use One Space Between Each.
+auth_users = [int(user) if id_pattern.search(user) else user for user in environ.get('AUTH_USERS', '1101724431').split()]  # For Multiple Id Use One Space Between Each.
 AUTH_USERS = (auth_users + ADMINS) if auth_users else []
 
 # This Channel Is For When User Start Your Bot Then Bot Send That User Name And Id In This Log Channel, Same For Group Also.
