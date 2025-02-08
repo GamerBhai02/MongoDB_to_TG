@@ -115,19 +115,19 @@ async def send_files(client, message):
             file_size_mb = round(file_size / (1024 * 1024), 2) if isinstance(file_size, int) else file_size
 
             # Create the message caption
-            file_message = f"**{file_name}**\n📦 Size: {file_size_mb} MB\n\n{caption}"
+            file_message = f"**{file_name}**\n📦 Size: {file_size_mb} MB"
 
             # Detect file type based on file extension or metadata
             if file_id.endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif')):
                 await client.send_message(chat_id=DBUSER, text="Photo Skipped")
                 failed += 1
             elif file_id.endswith(('.mp4', '.mkv', '.avi', '.mov')):
-                await client.send_video(chat_id=CHANNEL_ID, video=file_id, caption=file_message)
+                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
             elif file_id.endswith(('.mp3', '.wav', '.aac')):
                 await client.send_message(chat_id=DBUSER, text="Audio Skipped")
                 failed += 1
             else:
-                await client.send_video(chat_id=CHANNEL_ID, video=file_id, caption=file_message)
+                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
 
         except FloodWait as e:
             logging.warning(f'Flood wait of {e.value} seconds detected')
