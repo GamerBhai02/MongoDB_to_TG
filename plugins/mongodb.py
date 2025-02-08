@@ -10,50 +10,29 @@ from info import *
 # Global control variables
 cancel_process = False
 skip_count = 0  # Default skip count
-batch_size = 10  # Reduce batch size to lower memory consumption
 failed = 0
 total = 0
 
 def get_status_message(index, skip_count, failed, e_value=None):
+    """Generates a status message for file sending progress."""
     global total
     total += 1
-    if e_value:
-        return f"""
-╔════❰ ꜰꜱʙᴏᴛᴢ - {total} ❱═❍⊱❁۪۪
+    status = f"Sleeping {e_value}" if e_value else "Sending Files"
+    return f"""
+╔════❰ ꜰɪʟᴇ ꜱᴇɴᴅᴇʀ - {total} ❱═❍⊱❁۪۪
 ║╭━━━━━━━━━━━━━━━➣
-║┣⪼<b>🕵 ғᴇᴄʜᴇᴅ Msɢ :</b> <code>{index}</code>
-║┃
-║┣⪼<b>✅ Cᴏᴍᴩʟᴇᴛᴇᴅ:</b> <code>{(index-failed)-skip_count}</code>
-║┃
-║┣⪼<b>🪆 Sᴋɪᴩᴩᴇᴅ Msɢ :</b> <code>{skip_count}</code>
-║┃
-║┣⪼<b>⚠️ Fᴀɪʟᴇᴅ:</b> <code>{failed}</code>
-║┃
-║┣⪼<b>📊 Cᴜʀʀᴇɴᴛ Sᴛᴀᴛᴜs:</b> <code>Sleeping {e_value}</code>
-║┃
+║┣⪼ <b>🕵 ғᴇᴄʜᴇᴅ Msɢ :</b> <code>{index}</code>
+║┣⪼ <b>✅ Cᴏᴍᴩʟᴇᴛᴇᴅ:</b> <code>{(index-failed)-skip_count}</code>
+║┣⪼ <b>🪆 Sᴋɪᴩᴩᴇᴅ Msɢ :</b> <code>{skip_count}</code>
+║┣⪼ <b>⚠️ Fᴀɪʟᴇᴅ:</b> <code>{failed}</code>
+║┣⪼ <b>📊 Cᴜʀʀᴇɴᴛ Sᴛᴀᴛᴜs:</b> <code>{status}</code>
 ║╰━━━━━━━━━━━━━━━➣ 
-╚════❰ ꜰꜱʙᴏᴛᴢ ❱══❍⊱❁۪۪
-"""
-    else:
-        return f"""
-╔════❰ ꜰꜱʙᴏᴛᴢ - {total} ❱═❍⊱❁۪۪
-║╭━━━━━━━━━━━━━━━➣
-║┣⪼<b>🕵 ғᴇᴄʜᴇᴅ Msɢ :</b> <code>{index}</code>
-║┃
-║┣⪼<b>✅ Cᴏᴍᴩʟᴇᴛᴇᴅ:</b> <code>{(index-failed)-skip_count}</code>
-║┃
-║┣⪼<b>🪆 Sᴋɪᴩᴩᴇᴅ Msɢ :</b> <code>{skip_count}</code>
-║┃
-║┣⪼<b>⚠️ Fᴀɪʟᴇᴅ:</b> <code>{failed}</code>
-║┃
-║┣⪼<b>📊 Cᴜʀʀᴇɴᴛ Sᴛᴀᴛᴜs:</b> <code>Sending Files</code>
-║┃
-║╰━━━━━━━━━━━━━━━➣ 
-╚════❰ ꜰꜱʙᴏᴛᴢ ❱══❍⊱❁۪۪
+╚════❰ ꜰɪʟᴇ ꜱᴇɴᴅᴇʀ ❱══❍⊱❁۪۪
 """
 
 @Client.on_message(filters.command("setskip"))
 async def set_skip(client, message):
+    """Allows admins to set a skip count for resuming file sending."""
     global skip_count
     try:
         skip_count = int(message.text.split(" ")[1])
@@ -63,98 +42,74 @@ async def set_skip(client, message):
 
 @Client.on_message(filters.command("send"))
 async def send_files(client, message):
+    """Sends all indexed files from MongoDB to a specified channel."""
     global cancel_process, skip_count, failed, total
-    cancel_process = False  # Reset cancel flag
-    failed = 0  # Reset failed count
-    total = 0   # Reset total count
+    cancel_process = False
+    failed = 0
+    total = 0
 
-    # MongoDB Setup Start
+    # MongoDB Setup
     DBUSER = message.from_user.id
-    fs = await client.ask(chat_id=message.from_user.id, text="Now Send Me The MongoDB URL")
+    fs = await client.ask(chat_id=message.from_user.id, text="📌 Send the MongoDB URL")
     MONGO_URI = fs.text
-    fs2 = await client.ask(chat_id=message.from_user.id, text="Now Send Me The DB Name")
+    fs2 = await client.ask(chat_id=message.from_user.id, text="📌 Send the Database Name")
     DB_NAME = fs2.text
-    fs3 = await client.ask(chat_id=message.from_user.id, text="Now Send Me The Collection Name")
+    fs3 = await client.ask(chat_id=message.from_user.id, text="📌 Send the Collection Name")
     COLLECTION_NAME = fs3.text
     mongo_client = MongoClient(MONGO_URI)
     db = mongo_client[DB_NAME]
-    movies_collection = db[COLLECTION_NAME]
-    # MongoDB Setup End
+    files_collection = db[COLLECTION_NAME]  # Collection where files are stored
 
-    fsd = await client.ask(chat_id=message.from_user.id, text="Now Send Me The Destination Channel ID Or Username\nMake Sure That Bot Is Admin In The Destination Channel")
+    fsd = await client.ask(chat_id=message.from_user.id, text="📌 Send the Destination Channel ID or Username\n(Make sure the bot is an admin in the channel)")
     CHANNEL_ID = fsd.text
 
-    # Notify user about the process start with cancel button
+    # Notify user about process start
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_process")]])
     status_message = await client.send_message(
         message.chat.id,
-        "Starting to send files to the channel...",
+        "🚀 Starting to send files...",
         reply_markup=keyboard
     )
 
-    # Apply the skip count and stream files from MongoDB
-    cursor = movies_collection.find().skip(skip_count)
+    # **Retrieve all files stored in MongoDB using `_id` and `file_ref`**
+    cursor = files_collection.find({}, {"_id": 1, "file_ref": 1}).skip(skip_count)  
 
     index = skip_count
-    for file in cursor:
+    for file_data in cursor:  # Apply skip count
         if cancel_process:
             await status_message.edit_text("❌ Process canceled by the user.")
             return
 
         index += 1
         try:
-            file_id = file.get("_id")
-            if not file_id:
-                raise ValueError("Invalid file ID")
+            file_id = file_data["_id"]  # Telegram File ID
+            file_ref = file_data["file_ref"]  # Reference to the file
 
-            file_name = file.get("file_name", "Unknown File Name")
-            file_size = file.get("file_size", "Unknown Size")
-            caption = file.get("caption", "No caption provided.")
-
-            # Format file size for readability
-            file_size_mb = round(file_size / (1024 * 1024), 2) if isinstance(file_size, int) else file_size
-
-            # Create the message caption
-            file_message = f"**{file_name}**\n📦 Size: {file_size_mb} MB\n\n{caption}"
-
-            # Detect file type based on file extension or metadata
-            if file_id.endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif')):
-                await client.send_message(chat_id=DBUSER, text="Photo Skipped")
-                failed += 1
-            elif file_id.endswith(('.mp4', '.mkv', '.avi', '.mov')):
-                await client.send_video(chat_id=CHANNEL_ID, video=file_id, caption=file_message)
-            elif file_id.endswith(('.mp3', '.wav', '.aac')):
-                await client.send_message(chat_id=DBUSER, text="Audio Skipped")
-                failed += 1
-            else:
-                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
+            # **Send the file using the stored `file_ref`**
+            await client.send_cached_media(chat_id=CHANNEL_ID, file_id=file_ref)
 
         except FloodWait as e:
-            logging.warning(f'Flood wait of {e.value} seconds detected')
-            new_status_message = get_status_message(index, skip_count, failed, e.value)
-            if new_status_message != status_message.text:
-                await status_message.edit_text(new_status_message, reply_markup=keyboard)
+            logging.warning(f'⚠️ Flood wait of {e.value} seconds detected')
+            await status_message.edit_text(get_status_message(index, skip_count, failed, e.value), reply_markup=keyboard)
             await asyncio.sleep(e.value)
-            continue  # Skip the current file and continue with the next one
+            continue  # Skip current file and continue
+
         except Exception as e:
-            logging.error(f'Failed to send file: {e}')
+            logging.error(f'❌ Failed to send file: {e}')
             failed += 1
-            new_status_message = get_status_message(index, skip_count, failed)
-            if new_status_message != status_message.text:
-                await status_message.edit_text(new_status_message, reply_markup=keyboard)
+            await status_message.edit_text(get_status_message(index, skip_count, failed), reply_markup=keyboard)
 
         # Trigger garbage collection to free memory
         gc.collect()
 
-        # Update status in the user chat
-        new_status_message = get_status_message(index, skip_count, failed)
-        if new_status_message != status_message.text:
-            await status_message.edit_text(new_status_message, reply_markup=keyboard)
+        # Update status message
+        await status_message.edit_text(get_status_message(index, skip_count, failed), reply_markup=keyboard)
 
     await status_message.edit_text("✅ All files have been sent successfully!")
 
 @Client.on_callback_query()
 async def handle_callbacks(client, callback_query):
+    """Handles cancel button click event."""
     global cancel_process
 
     if callback_query.data == "cancel_process":
