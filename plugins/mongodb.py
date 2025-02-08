@@ -86,7 +86,7 @@ async def send_files(client, message):
             file_ref = file_data["file_ref"]  # Reference to the file
 
             # **Send the file using the stored `file_ref`**
-            await client.send_cached_media(chat_id=CHANNEL_ID, file_id=file_ref)
+            await client.send_cached_media(chat_id=CHANNEL_ID, file_id=file_id)
 
         except FloodWait as e:
             logging.warning(f'⚠️ Flood wait of {e.value} seconds detected')
