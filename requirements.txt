@@ -17,6 +17,7 @@ wheel
 ujson 
 wget
 aiofiles
+motor
 hachoir
 python-decouple 
 ffmpeg
