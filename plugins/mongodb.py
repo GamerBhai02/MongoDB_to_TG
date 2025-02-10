@@ -115,7 +115,7 @@ async def send_files(client, message):
     cursor = movies_collection.find().skip(skip_count)
 
     index = skip_count
-    for file in cursor:
+    async for file in cursor:
         if cancel_process:
             await status_message.edit_text("❌ Process canceled by the user.")
             return
