@@ -6,6 +6,8 @@ import asyncio
 import logging
 import gc
 from info import *
+from umongo import Instance, Document, fields
+import base64
 
 # Global control variables
 cancel_process = False
