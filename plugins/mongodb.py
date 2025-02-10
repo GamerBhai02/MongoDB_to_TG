@@ -120,85 +120,111 @@ async def send_files(client, message):
 
     index = skip_count
     async for file in cursor:
-        if cancel_process:
-            await status_message.edit_text("❌ Process canceled by the user.")
-            return
+    if cancel_process:
+        await status_message.edit_text("❌ Process canceled by the user.")
+        return
 
-        index += 1
+    index += 1
+    try:
+        file_id = file.get("_id")
+        if not file_id:
+            raise ValueError("Invalid file ID")
+
+        # Check if the file ID is valid and exists
+        data = f"files_{file_id}"
         try:
-            file_id = file.get("_id")
-            if not file_id:
-                raise ValueError("Invalid file ID")
+            pre, file_id = data.split('_', 1)
+        except:
+            file_id = data
+            pre = ""
 
-            # Check if the file ID is valid and exists
-            data = f"files_{file_id}"
-            try:
-                pre, file_id = data.split('_', 1)
-            except:
-                file_id = data
-                pre = ""
+        # Log the file ID for debugging
+        logging.info(f"Processing file ID: {file_id}")
 
-            # Log the file ID for debugging
-            logging.info(f"Processing file ID: {file_id}")
+        # Verify the file ID before attempting to send
+        if not file_id:
+            logging.error(f"Invalid or empty file ID: {file_id}")
+            continue  # Skip this file and go to the next
 
-            # Verify the file ID before attempting to send
-            if not file_id:
-                logging.error(f"Invalid or empty file ID: {file_id}")
-                continue  # Skip this file and go to the next
-
-            files_ = await get_file_details(file_id)
-            if not files_:
-                pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-                try:
-                    msg = await client.send_cached_media(
-                        chat_id=CHANNEL_ID,
-                        file_id=file_id,
-                        protect_content=False
-                    )
-                    return
-                except:
-                    pass
-                return
-            files = files_[0]
-            f_caption = files.caption if files.caption else files.file_name
-            # Send the file if it's valid
+        files_ = await get_file_details(file_id)
+        if not files_:
+            pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
             try:
                 msg = await client.send_cached_media(
                     chat_id=CHANNEL_ID,
                     file_id=file_id,
+                    protect_content=False
+                )
+                return
+            except:
+                pass
+            return
+        files = files_[0]
+        f_caption = files.caption if files.caption else files.file_name
+
+        # Check the file type and decide the method to send
+        file_type = files.file_type
+        if file_type == "document":
+            try:
+                # Send document
+                msg = await client.send_document(
+                    chat_id=CHANNEL_ID,
+                    document=file_id,
                     caption=f_caption,
                     protect_content=False
                 )
-                logging.info(f"File {file_id} sent successfully.")
+                logging.info(f"Document {file_id} sent successfully.")
             except Exception as send_error:
-                logging.error(f"Failed to send file {file_id}: {send_error}")
+                logging.error(f"Failed to send document {file_id}: {send_error}")
                 failed += 1
                 new_status_message = get_status_message(index, skip_count, failed)
                 if new_status_message != status_message.text:
                     await status_message.edit_text(new_status_message, reply_markup=keyboard)
                 continue
 
-        except FloodWait as e:
-            logging.warning(f'Flood wait of {e.value} seconds detected')
-            new_status_message = get_status_message(index, skip_count, failed, e.value)
-            if new_status_message != status_message.text:
-                await status_message.edit_text(new_status_message, reply_markup=keyboard)
-            await asyncio.sleep(e.value)
-            continue  # Skip the current file and continue with the next one
-        except Exception as e:
-            logging.error(f'Failed to send file: {e}')
-            failed += 1
-            new_status_message = get_status_message(index, skip_count, failed)
-            if new_status_message != status_message.text:
-                await status_message.edit_text(new_status_message, reply_markup=keyboard)
+        elif file_type == "video":
+            try:
+                # Send video
+                msg = await client.send_video(
+                    chat_id=CHANNEL_ID,
+                    video=file_id,
+                    caption=f_caption,
+                    protect_content=False
+                )
+                logging.info(f"Video {file_id} sent successfully.")
+            except Exception as send_error:
+                logging.error(f"Failed to send video {file_id}: {send_error}")
+                failed += 1
+                new_status_message = get_status_message(index, skip_count, failed)
+                if new_status_message != status_message.text:
+                    await status_message.edit_text(new_status_message, reply_markup=keyboard)
+                continue
 
-        # Trigger garbage collection to free memory
-        gc.collect()
+        else:
+            logging.info(f"Skipping file {file_id} with unsupported type: {file_type}")
+            continue  # Skip files with invalid file_type
 
-        # Update status in the user chat
+    except FloodWait as e:
+        logging.warning(f'Flood wait of {e.value} seconds detected')
+        new_status_message = get_status_message(index, skip_count, failed, e.value)
+        if new_status_message != status_message.text:
+            await status_message.edit_text(new_status_message, reply_markup=keyboard)
+        await asyncio.sleep(e.value)
+        continue  # Skip the current file and continue with the next one
+    except Exception as e:
+        logging.error(f'Failed to send file: {e}')
+        failed += 1
         new_status_message = get_status_message(index, skip_count, failed)
         if new_status_message != status_message.text:
             await status_message.edit_text(new_status_message, reply_markup=keyboard)
+
+    # Trigger garbage collection to free memory
+    gc.collect()
+
+    # Update status in the user chat
+    new_status_message = get_status_message(index, skip_count, failed)
+    if new_status_message != status_message.text:
+        await status_message.edit_text(new_status_message, reply_markup=keyboard)
 
     await mongo_client.close()  # Close MongoDB connection when done
 
