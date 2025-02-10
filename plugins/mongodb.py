@@ -80,7 +80,24 @@ async def send_files(client, message):
     db = mongo_client[DB_NAME]
     movies_collection = db[COLLECTION_NAME]
     # MongoDB Setup End
-
+    instance = Instance.from_db(db)
+    @instance.register
+    class Media(Document):
+        file_id = fields.StrField(attribute='_id')
+        file_ref = fields.StrField(allow_none=True)
+        file_name = fields.StrField(required=True)
+        file_size = fields.IntField(required=True)
+        file_type = fields.StrField(allow_none=True)
+        mime_type = fields.StrField(allow_none=True)
+        caption = fields.StrField(allow_none=True)
+        class Meta:
+            indexes = ('$file_name', )
+            collection_name = COLLECTION_NAME
+    async def get_file_details(query):
+        filter = {'file_id': query}
+        cursor = Media.find(filter)
+        filedetails = await cursor.to_list(length=1)
+        return filedetails
     fsd = await client.ask(chat_id=message.from_user.id, text="Now Send Me The Destination Channel ID Or Username\nMake Sure That Bot Is Admin In The Destination Channel")
     CHANNEL_ID = fsd.text
 
