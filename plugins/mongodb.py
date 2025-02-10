@@ -83,6 +83,7 @@ async def send_files(client, message):
     movies_collection = db[COLLECTION_NAME]
     # MongoDB Setup End
     instance = Instance.from_db(db)
+
     @instance.register
     class Media(Document):
         file_id = fields.StrField(attribute='_id')
@@ -92,14 +93,17 @@ async def send_files(client, message):
         file_type = fields.StrField(allow_none=True)
         mime_type = fields.StrField(allow_none=True)
         caption = fields.StrField(allow_none=True)
+
         class Meta:
             indexes = ('$file_name', )
             collection_name = COLLECTION_NAME
+
     async def get_file_details(query):
-        filter = {'file_id': query}
+        filter = {'_id': query}
         cursor = Media.find(filter)
         filedetails = await cursor.to_list(length=1)
         return filedetails
+
     fsd = await client.ask(chat_id=message.from_user.id, text="Now Send Me The Destination Channel ID Or Username\nMake Sure That Bot Is Admin In The Destination Channel")
     CHANNEL_ID = fsd.text
 
@@ -125,37 +129,54 @@ async def send_files(client, message):
             file_id = file.get("_id")
             if not file_id:
                 raise ValueError("Invalid file ID")
-            
+
+            # Check if the file ID is valid and exists
             data = f"files_{file_id}"
             try:
                 pre, file_id = data.split('_', 1)
             except:
                 file_id = data
                 pre = ""
-            
-            if data.startswith("files"):
-                files_ = await get_file_details(file_id)
-                if not files_:
-                    pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
-                    try:
-                        msg = await client.send_cached_media(
-                            chat_id=CHANNEL_ID,
-                            file_id=file_id,
-                            protect_content=False
-                        )
-                        return
-                    except:
-                        pass
+
+            # Log the file ID for debugging
+            logging.info(f"Processing file ID: {file_id}")
+
+            # Verify the file ID before attempting to send
+            if not file_id:
+                logging.error(f"Invalid or empty file ID: {file_id}")
+                continue  # Skip this file and go to the next
+
+            files_ = await get_file_details(file_id)
+            if not files_:
+                pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+                try:
+                    msg = await client.send_cached_media(
+                        chat_id=CHANNEL_ID,
+                        file_id=file_id,
+                        protect_content=False
+                    )
                     return
-                files = files_[0]
-                f_caption=files.file_name
+                except:
+                    pass
+                return
+            files = files_[0]
+            f_caption = files.caption if files.caption else files.file_name
+            # Send the file if it's valid
+            try:
                 msg = await client.send_cached_media(
                     chat_id=CHANNEL_ID,
                     file_id=file_id,
                     caption=f_caption,
                     protect_content=False
                 )
-                return
+                logging.info(f"File {file_id} sent successfully.")
+            except Exception as send_error:
+                logging.error(f"Failed to send file {file_id}: {send_error}")
+                failed += 1
+                new_status_message = get_status_message(index, skip_count, failed)
+                if new_status_message != status_message.text:
+                    await status_message.edit_text(new_status_message, reply_markup=keyboard)
+                continue
 
         except FloodWait as e:
             logging.warning(f'Flood wait of {e.value} seconds detected')
@@ -179,7 +200,7 @@ async def send_files(client, message):
         if new_status_message != status_message.text:
             await status_message.edit_text(new_status_message, reply_markup=keyboard)
 
-    await status_message.edit_text("✅ All files have been sent successfully!")
+    await mongo_client.close()  # Close MongoDB connection when done
 
 @Client.on_callback_query()
 async def handle_callbacks(client, callback_query):
