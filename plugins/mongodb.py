@@ -1,6 +1,6 @@
+from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from pymongo import MongoClient
 from pyrogram.errors import FloodWait
 import asyncio
 import logging
@@ -78,7 +78,7 @@ async def send_files(client, message):
     DB_NAME = fs2.text
     fs3 = await client.ask(chat_id=message.from_user.id, text="Now Send Me The Collection Name")
     COLLECTION_NAME = fs3.text
-    mongo_client = MongoClient(MONGO_URI)
+    mongo_client = AsyncIOMotorClient(MONGO_URI)
     db = mongo_client[DB_NAME]
     movies_collection = db[COLLECTION_NAME]
     # MongoDB Setup End
