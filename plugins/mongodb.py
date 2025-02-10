@@ -106,28 +106,37 @@ async def send_files(client, message):
             file_id = file.get("_id")
             if not file_id:
                 raise ValueError("Invalid file ID")
-
-            file_name = file.get("file_name", "Unknown File Name")
-            file_size = file.get("file_size", "Unknown Size")
-            caption = file.get("caption", "No caption provided.")
-
-            # Format file size for readability
-            file_size_mb = round(file_size / (1024 * 1024), 2) if isinstance(file_size, int) else file_size
-
-            # Create the message caption
-            file_message = f"**{file_name}**\n📦 Size: {file_size_mb} MB"
-
-            # Detect file type based on file extension or metadata
-            if file_id.endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif')):
-                await client.send_message(chat_id=DBUSER, text="Photo Skipped")
-                failed += 1
-            elif file_id.endswith(('.mp4', '.mkv', '.avi', '.mov')):
-                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
-            elif file_id.endswith(('.mp3', '.wav', '.aac')):
-                await client.send_message(chat_id=DBUSER, text="Audio Skipped")
-                failed += 1
-            else:
-                await client.send_document(chat_id=CHANNEL_ID, document=file_id, caption=file_message)
+            
+            data = f"files_{file_id}"
+            try:
+                pre, file_id = data.split('_', 1)
+            except:
+                file_id = data
+                pre = ""
+            
+            if data.startswith("files"):
+                files_ = await get_file_details(file_id)
+                if not files_:
+                    pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+                    try:
+                        msg = await client.send_cached_media(
+                            chat_id=CHANNEL_ID,
+                            file_id=file_id,
+                            protect_content=False
+                        )
+                        return
+                    except:
+                        pass
+                    return
+                files = files_[0]
+                f_caption=files.file_name
+                msg = await client.send_cached_media(
+                    chat_id=CHANNEL_ID,
+                    file_id=file_id,
+                    caption=f_caption,
+                    protect_content=False
+                )
+                return
 
         except FloodWait as e:
             logging.warning(f'Flood wait of {e.value} seconds detected')
