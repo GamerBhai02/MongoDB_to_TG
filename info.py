@@ -5,7 +5,7 @@ from Script import script
 id_pattern = re.compile(r'^.\d+$')
 
 # Bot information
-SESSION = environ.get('SESSION', 'FsBotz')
+SESSION = environ.get('SESSION', 'Media_search')
 API_ID = int("20773430")
 API_HASH = "fa900dd9547c3ddd62a6ced944251559"
 BOT_TOKEN = environ.get('BOT_TOKEN', "1747248526:AAEQsl3uk_QvMfnfDfuWIAW4PJJfbdrS1o0")
